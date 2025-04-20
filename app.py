@@ -2,13 +2,39 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import gdown
 
 # -----------------------------------------
 # Page config — must be first!
 # -----------------------------------------
 st.set_page_config(page_title="Emotion-Based Recommender", layout="wide")
 
+# -----------------------------------------
+# Download CSVs from Google Drive
+# -----------------------------------------
+@st.cache_data
+def load_data():
+    gdown.download(
+        "https://drive.google.com/uc?id=1idUzlmzAvjtUCVRgdpFTWab5-Q6yUaD9",
+        "ratings.csv",
+        quiet=False
+    )
+    gdown.download(
+        "https://drive.google.com/uc?id=1r5Iw7cVWSEZrAqQsSqClC-Meq_o8g392",
+        "movies.csv",
+        quiet=False
+    )
+    ratings = pd.read_csv("ratings.csv")
+    ratings.columns = ratings.columns.str.strip()
+    movies = pd.read_csv("movies.csv")
+    movies.columns = movies.columns.str.strip()
+    return ratings, movies
+
+ratings, movies = load_data()
+
+# -----------------------------------------
 # Optional styling
+# -----------------------------------------
 st.markdown("""
     <style>
         .stRadio > div { flex-direction: row !important; gap: 10px; }
@@ -17,15 +43,6 @@ st.markdown("""
         footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
-
-# -----------------------------------------
-# Load local cleaned CSVs
-# -----------------------------------------
-ratings = pd.read_csv("ratings.csv")
-ratings.columns = ratings.columns.str.strip()
-
-movies = pd.read_csv("movies.csv")
-movies.columns = movies.columns.str.strip()
 
 # -----------------------------------------
 # Prepare movie stats
@@ -82,22 +99,22 @@ if "show_recs" not in st.session_state:
 # Step 0 — Welcome
 # -----------------------------------------
 if st.session_state.step == 0:
-    st.title("🎬 Welcome to the Emotion‑Based Recommender")
+    st.title("Welcome to the Emotion-Based Recommender")
     st.markdown("""
-    **1. Rate 10 movies (1 = dislike, 5 = like)**  
-    **2. We prepare your recommendations**  
-    **3. Choose # of recs & set emotional tone**  
-    **4. View your list & emotion wheel**
+    1. Rate 10 movies (1 = dislike, 5 = like)  
+    2. We prepare your recommendations  
+    3. Choose how many recs you want and your emotion tone  
+    4. See your list & emotion wheel
     """)
     if st.button("Get Started"):
         st.session_state.step = 1
 
 # -----------------------------------------
-# Step 1 — Preference Elicitation
+# Step 1 — Rate Movies
 # -----------------------------------------
 elif st.session_state.step == 1:
-    st.header("Step 1: Preference Elicitation")
-    st.write("Rate at least **10** of these 30 movies:")
+    st.header("Step 1: Rate Movies")
+    st.write("Rate at least **10** of these 30 randomly selected movies:")
     ratings_inputs = {}
     for i, title in enumerate(sample30):
         col = st.columns(3)[i % 3]
@@ -108,41 +125,39 @@ elif st.session_state.step == 1:
         st.session_state.step = 2
 
 # -----------------------------------------
-# Step 2 — Buffering Screen
+# Step 2 — Simulated Loading
 # -----------------------------------------
 elif st.session_state.step == 2:
-    st.header("Preparing your personalized recommendations…")
+    st.header("Preparing your personalized recommendations...")
     if st.button("Proceed"):
         st.session_state.step = 3
 
 # -----------------------------------------
-# Step 3 — Emotion Config + Results
+# Step 3 — Emotion + Recommendations
 # -----------------------------------------
 elif st.session_state.step == 3:
-    st.header("Step 3: Configure & View Recommendations")
+    st.header("Step 3: Customize Emotion & View Recommendations")
 
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        st.markdown("### Recommendations")
         user_id = st.number_input("User ID", value=int(ratings["userId"].min()), step=1)
-        num_rec = st.slider("Recommendations", 1, 20, 7)
+        num_rec = st.slider("Number of Recommendations", 1, 20, 7)
 
-        st.markdown("### Select the Emotional Intensity for Each Emotion")
+        st.markdown("### Select Emotional Intensity")
         emo_choices = {}
-        emo_cols_row1 = st.columns(4)
-        emo_cols_row2 = st.columns(4)
+        emo_cols1 = st.columns(4)
+        emo_cols2 = st.columns(4)
 
         for i, emo in enumerate(emotions[:4]):
-            with emo_cols_row1[i]:
+            with emo_cols1[i]:
                 emo_choices[emo] = st.radio(emo, ["Low", "Diverse", "High"], key=emo)
 
         for i, emo in enumerate(emotions[4:]):
-            with emo_cols_row2[i]:
+            with emo_cols2[i]:
                 emo_choices[emo] = st.radio(emo, ["Low", "Diverse", "High"], key=emo)
 
-        st.markdown(" ")
-        if st.button("🎯 Show Recommendations"):
+        if st.button("Show Recommendations"):
             st.session_state.show_recs = True
 
     with col2:
@@ -155,7 +170,7 @@ elif st.session_state.step == 3:
         cands = movie_stats[~movie_stats["movieId"].isin(seen)]
         top = (
             cands.sort_values(["avg_rating", "num_ratings"], ascending=False)
-                 .head(num_rec)[["title", "avg_rating", "num_ratings"]]
+                .head(num_rec)[["title", "avg_rating", "num_ratings"]]
         )
 
         st.markdown("## 🎥 Recommended Movies")
