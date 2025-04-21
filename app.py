@@ -6,7 +6,7 @@ import gdown
 import os
 
 # -----------------------------------------
-# Page config — must be first!
+# Page config 
 # -----------------------------------------
 st.set_page_config(page_title="Emotion-Based Recommender", layout="wide")
 
@@ -54,7 +54,7 @@ movie_stats = (
     .merge(movies[["movieId", "title"]], on="movieId")
 )
 
-sample30 = movies.sample(30, random_state=42)["title"].tolist()
+sample8 = movies.sample(8, random_state=42)["title"].tolist()
 
 emotions = [
     "Joy", "Trust", "Fear", "Surprise",
@@ -75,14 +75,14 @@ def plot_petal_wheel(emo_choices):
     sizes = [SIZE_MAP[emo_choices[l]] for l in labels]
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
 
-    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(2.2, 2.2))
+    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(2, 2))
     for angle, lbl, size in zip(angles, labels, sizes):
         face = "white" if emo_choices[lbl] == "Diverse" else COLOR_MAP[lbl]
         edge = COLOR_MAP[lbl] if emo_choices[lbl] != "Diverse" else "gray"
         ax.bar(angle, size, width=0.7, facecolor=face, edgecolor=edge, linewidth=1.5, alpha=0.8)
 
     ax.set_xticks(angles)
-    ax.set_xticklabels(labels, fontsize=7)
+    ax.set_xticklabels(labels, fontsize=6)
     ax.set_yticks([])
     fig.tight_layout()
     return fig
@@ -96,15 +96,15 @@ if "show_recs" not in st.session_state:
     st.session_state.show_recs = False
 
 # -----------------------------------------
-# Step 0 — Welcome
+# Step 0 
 # -----------------------------------------
 if st.session_state.step == 0:
-    st.title("🎬 Welcome to the Emotion‑Based Recommender")
+    st.title("Welcome to the Emotion‑Based Recommender")
     st.markdown("""
-    1️⃣ **Rate 10 movies (1 = dislike, 5 = like)**  
-    2️⃣ **We prepare your recommendations**  
-    3️⃣ **Choose your emotional tone preferences**  
-    4️⃣ **Get your custom movie list + emotion wheel**
+    1. **Rate 4+ movies (1 = dislike, 5 = like)**  
+    2. **We prepare your recommendations**  
+    3. **Choose your emotional tone preferences**  
+    4. **Get your custom movie list + emotion wheel**
     """)
     if st.button("Get Started"):
         st.session_state.step = 1
@@ -114,10 +114,10 @@ if st.session_state.step == 0:
 # -----------------------------------------
 elif st.session_state.step == 1:
     st.header("Step 1: Rate These Movies")
-    st.write("Rate at least **10** of the following 30 randomly selected movies:")
+    st.write("Rate at least **4** of the following 8 randomly selected movies:")
     ratings_inputs = {}
-    for i, title in enumerate(sample30):
-        col = st.columns(3)[i % 3]
+    for i, title in enumerate(sample8):
+        col = st.columns(2)[i % 2]
         with col:
             ratings_inputs[title] = st.slider(f"{title}", 1, 5, 3, key=f"slider_{i}")
     if st.button("Continue"):
@@ -145,7 +145,7 @@ elif st.session_state.step == 3:
         user_id = st.number_input("User ID", value=int(ratings["userId"].min()), step=1)
         num_rec = st.slider("How many movies to recommend?", 1, 20, 7)
 
-        st.markdown("### Emotional Tone")
+        st.markdown("### Select Your Emotional Intensity")
         emo_choices = {}
         emo_cols_row1 = st.columns(4)
         emo_cols_row2 = st.columns(4)
@@ -158,7 +158,7 @@ elif st.session_state.step == 3:
             with emo_cols_row2[i]:
                 emo_choices[emo] = st.radio(emo, ["Low", "Diverse", "High"], key=f"emo_{emo}")
 
-        if st.button("Show Recommendations 🎯"):
+        if st.button("Show Recommendations"):
             st.session_state.show_recs = True
 
     with col2:
@@ -174,5 +174,5 @@ elif st.session_state.step == 3:
                  .head(num_rec)[["title", "avg_rating", "num_ratings"]]
         )
 
-        st.markdown("## 🎥 Recommended Movies")
+        st.markdown("## Recommended Movies")
         st.dataframe(top.reset_index(drop=True), use_container_width=True)
